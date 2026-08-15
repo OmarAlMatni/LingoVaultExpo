@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "LingoVault",
+    "slug": "lingovault",
+    "version": "2.0.0",
+    "scheme": "lingovault",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "android": {
+      "package": "com.lingovault.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": false,
+          "data": [
+            {
+              "scheme": "lingovault"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": false,
+          "useSQLCipher": false
+        }
+      ],
+      "./plugins/withProcessTextPopup"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "ab7a47ef-3977-4408-a463-2d3da3be3c0f"
+      }
+    }
+  }
+}
