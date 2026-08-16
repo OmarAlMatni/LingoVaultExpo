@@ -28,27 +28,28 @@
       ]
     },
     "plugins": [
-  "expo-router",
-  [
-    "expo-sqlite",
-    {
-      "enableFTS": false,
-      "useSQLCipher": false
-    }
-  ],
-  [
-    "expo-build-properties",
-    {
-      "android": {
-        "buildArchs": [
-          "arm64-v8a"
-        ]
-      }
-    }
-  ],
-  "./plugins/withProcessTextPopup",
-  "expo-asset"
-],
+      "expo-router",
+      [
+        "expo-sqlite",
+        {
+          "enableFTS": false,
+          "useSQLCipher": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "buildArchs": [
+              "arm64-v8a"
+            ]
+          }
+        }
+      ],
+      "./plugins/withProcessTextPopup",
+      "expo-asset",
+      "expo-font"
+    ],
     "experiments": {
       "typedRoutes": true
     },
