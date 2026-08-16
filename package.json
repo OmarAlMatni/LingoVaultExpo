@@ -9,7 +9,8 @@
     "prebuild": "expo prebuild -p android",
     "prebuild:clean": "expo prebuild -p android --clean",
     "build:dictionary": "node scripts/build-dictionary.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "ios": "expo run:ios"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
