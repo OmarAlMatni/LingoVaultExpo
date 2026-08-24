@@ -12,14 +12,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import { useAppServices } from '@/services/AppServices';
+import { useTheme } from '@/theme/ThemeContext';
 import { TokenCard } from '@/components/TokenCard';
 import { SaveToListRow } from '@/components/SaveToListRow';
 import type { TranslationResult } from '@/types/translation';
 
 export default function TranslateScreen() {
   const params = useLocalSearchParams<{ text?: string }>();
-  const { translationService } = useAppServices();
+  const { colors } = useTheme();
+  const styles = makeStyles(colors);
+  const { translationService, ready } = useAppServices();
   const [inputText, setInputText] = useState(params.text ?? '');
   const [result, setResult] = useState<TranslationResult | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
@@ -35,6 +40,11 @@ export default function TranslateScreen() {
     }
   }
 
+  async function handlePaste() {
+    const text = await Clipboard.getStringAsync();
+    if (text) setInputText(text);
+  }
+
   function handleClear() {
     setInputText('');
     setResult(null);
@@ -46,32 +56,53 @@ export default function TranslateScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <SafeAreaView style={styles.container} edges={['top']}>
-        <Text style={styles.title}>Translate</Text>
+        {!ready && (
+          <View style={styles.loadingBanner}>
+            <ActivityIndicator size="small" color={colors.inkMuted} />
+            <Text style={styles.loadingBannerText}>
+              Loading offline dictionary — this only happens once...
+            </Text>
+          </View>
+        )}
 
-        <TextInput
-          style={styles.input}
-          value={inputText}
-          onChangeText={setInputText}
-          placeholder="日本語を入力してください..."
-          placeholderTextColor="#B4B4C4"
-          multiline
-        />
+        <View style={styles.infoRow}>
+          <Ionicons name="book-outline" size={14} color={colors.inkMuted} />
+          <Text style={styles.infoText}>Japanese → English · Offline</Text>
+        </View>
 
-        <View style={styles.buttonRow}>
-          <Pressable style={styles.secondaryButton} onPress={handleClear}>
-            <Text style={styles.secondaryButtonText}>Clear</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.primaryButton, (!inputText.trim() || analyzing) && styles.disabled]}
-            onPress={handleAnalyze}
-            disabled={!inputText.trim() || analyzing}
-          >
-            {analyzing ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Analyze</Text>
-            )}
-          </Pressable>
+        <View style={styles.inputWrap}>
+          <TextInput
+            style={styles.input}
+            value={inputText}
+            onChangeText={setInputText}
+            placeholder="Enter Japanese text to analyze…"
+            placeholderTextColor={colors.inkFaint}
+            multiline
+          />
+          {inputText.length > 0 && (
+            <Pressable style={styles.clearIcon} onPress={handleClear} hitSlop={8}>
+              <Ionicons name="close-circle" size={18} color={colors.inkFaint} />
+            </Pressable>
+          )}
+          <View style={styles.inputActions}>
+            <Pressable style={styles.pasteButton} onPress={handlePaste} hitSlop={8}>
+              <Ionicons name="clipboard-outline" size={20} color={colors.inkMuted} />
+            </Pressable>
+            <Pressable
+              style={[
+                styles.analyzeButton,
+                (!inputText.trim() || analyzing || !ready) && styles.disabled,
+              ]}
+              onPress={handleAnalyze}
+              disabled={!inputText.trim() || analyzing || !ready}
+            >
+              {analyzing ? (
+                <ActivityIndicator size="small" color={colors.onPrimary} />
+              ) : (
+                <Text style={styles.analyzeButtonText}>Analyze</Text>
+              )}
+            </Pressable>
+          </View>
         </View>
 
         <ScrollView style={styles.results} showsVerticalScrollIndicator={false}>
@@ -90,41 +121,60 @@ export default function TranslateScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: '#F8F7FF', paddingHorizontal: 20 },
-  title: { fontSize: 22, fontWeight: '800', color: '#221F35', marginTop: 12, marginBottom: 12 },
-  input: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: '#ECEAF6',
-    padding: 14,
-    fontSize: 18,
-    minHeight: 90,
-    textAlignVertical: 'top',
-    color: '#221F35',
-  },
-  buttonRow: { flexDirection: 'row', marginTop: 12, gap: 10 },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: '#2F8F7F',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  primaryButtonText: { color: '#FFFFFF', fontWeight: '700' },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ECEAF6',
-  },
-  secondaryButtonText: { color: '#6B6B7D', fontWeight: '600' },
-  disabled: { opacity: 0.5 },
-  results: { flex: 1, marginTop: 18 },
-  empty: { textAlign: 'center', color: '#9A9AA8', marginTop: 40 },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    flex: { flex: 1 },
+    container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 20 },
+    loadingBanner: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      backgroundColor: colors.surface,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.surfaceBorder,
+      paddingHorizontal: 14,
+      paddingVertical: 9,
+      marginTop: 12,
+    },
+    loadingBannerText: { color: colors.inkMuted, fontSize: 12, flex: 1 },
+    infoRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 14 },
+    infoText: { fontSize: 12, color: colors.inkMuted, fontWeight: '600' },
+    inputWrap: {
+      backgroundColor: colors.surface,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: colors.surfaceBorder,
+      marginTop: 10,
+      padding: 14,
+    },
+    input: {
+      fontSize: 17,
+      minHeight: 90,
+      textAlignVertical: 'top',
+      color: colors.ink,
+      paddingRight: 24,
+    },
+    clearIcon: { position: 'absolute', top: 10, right: 10 },
+    inputActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 8,
+    },
+    pasteButton: { padding: 6 },
+    analyzeButton: {
+      backgroundColor: colors.primary,
+      borderRadius: 999,
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      minWidth: 92,
+      alignItems: 'center',
+    },
+    analyzeButtonText: { color: colors.onPrimary, fontWeight: '700', fontSize: 14 },
+    disabled: { opacity: 0.5 },
+    results: { flex: 1, marginTop: 18 },
+    empty: { textAlign: 'center', color: colors.inkFaint, marginTop: 40 },
+  });
+}

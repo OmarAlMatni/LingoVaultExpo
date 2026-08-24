@@ -55,7 +55,6 @@ export function AppServicesProvider({ children }: { children: React.ReactNode })
         await translationService.init();
 
         const vocabularyStorage = new VocabularyStorage(vocabDb);
-        await vocabularyStorage.init();
 
         if (cancelled) return;
         translationServiceRef.current = translationService;

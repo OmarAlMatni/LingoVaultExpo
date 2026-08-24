@@ -1,9 +1,10 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { AppServicesProvider, useAppServices } from '@/services/AppServices';
+import { ThemeProvider, useTheme } from '@/theme/ThemeContext';
 
 export default function RootLayout() {
   return (
@@ -13,22 +14,25 @@ export default function RootLayout() {
       onError={(err) => console.error('Failed to open dictionary.db', err)}
     >
       <AppServicesProvider>
-        <StatusBar style="dark" />
-        <AppGate />
+        <ThemeProvider>
+          <AppGate />
+        </ThemeProvider>
       </AppServicesProvider>
     </SQLiteProvider>
   );
 }
 
 /**
- * Blocks rendering the real navigator until the tokenizer + dictionary +
- * vocabulary storage have all finished initializing (see AppServices.tsx).
- * Per spec section 17 ("show an appropriate loading state, keep the UI
- * responsive"), rather than letting screens render with a null service and
- * crash or silently do nothing.
+ * Only blocks the whole app on a hard startup error. "Still initializing"
+ * is NOT blocking anymore -- Home/Saved/Search work immediately, and the
+ * Translate screen shows its own inline "Loading offline dictionary..."
+ * banner (matching the reference screenshots) while `ready` is false,
+ * rather than the previous full-screen spinner gating every screen.
  */
 function AppGate() {
-  const { ready, error } = useAppServices();
+  const { error } = useAppServices();
+  const { colors, effectiveScheme } = useTheme();
+  const styles = makeStyles(colors);
 
   if (error) {
     return (
@@ -39,38 +43,34 @@ function AppGate() {
     );
   }
 
-  if (!ready) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color="#2F8F7F" />
-        <Text style={styles.loadingText}>Loading dictionary…</Text>
-      </View>
-    );
-  }
-
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen
-        name="popup"
-        options={{
-          presentation: 'transparentModal',
-          animation: 'fade',
-        }}
-      />
-    </Stack>
+    <>
+      <StatusBar style={effectiveScheme === 'dark' ? 'light' : 'dark'} />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="settings" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="popup"
+          options={{
+               headerShown: false,
+               animation: 'fade',
+          }}
+        />
+      </Stack>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F8F7FF',
-    padding: 24,
-  },
-  loadingText: { marginTop: 12, color: '#5B5B6B', fontSize: 14 },
-  errorTitle: { fontSize: 16, fontWeight: '600', color: '#B3261E', marginBottom: 8 },
-  errorBody: { fontSize: 13, color: '#5B5B6B', textAlign: 'center' },
-});
+function makeStyles(colors: ReturnType<typeof useTheme>['colors']) {
+  return StyleSheet.create({
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: colors.background,
+      padding: 24,
+    },
+    errorTitle: { fontSize: 16, fontWeight: '600', color: colors.danger, marginBottom: 8 },
+    errorBody: { fontSize: 13, color: colors.inkMuted, textAlign: 'center' },
+  });
+}

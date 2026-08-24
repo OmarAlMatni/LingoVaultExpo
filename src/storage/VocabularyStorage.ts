@@ -41,16 +41,8 @@ export class VocabularyStorage {
       CREATE INDEX IF NOT EXISTS idx_items_list ON items(list_id);
     `);
 
-    const existing = await this.db.getFirstAsync<{ count: number }>(
-      `SELECT COUNT(*) as count FROM lists`
-    );
-    if (!existing || existing.count === 0) {
-      // Seed the default lists mentioned in the spec so Lists isn't empty
-      // on first launch.
-      for (const name of ['Favorites', 'N5', 'N4']) {
-        await this.createList(name);
-      }
-    }
+    // Lists start empty -- the user creates their own (Favorites, N5, Anime,
+    // whatever they want). No default lists are seeded.
   }
 
   // -- Lists ---------------------------------------------------------------
@@ -122,6 +114,87 @@ export class VocabularyStorage {
 
   async toggleFavorite(id: string, favorite: boolean): Promise<void> {
     await this.db.runAsync(`UPDATE items SET favorite = ? WHERE id = ?`, [favorite ? 1 : 0, id]);
+  }
+
+  /** Simple substring search across the fields you'd actually look a word up by. */
+  async searchItems(query: string): Promise<VocabularyItem[]> {
+    const q = query.trim();
+    if (!q) return [];
+    const like = `%${q}%`;
+    const rows = await this.db.getAllAsync<any>(
+      `SELECT * FROM items
+       WHERE japanese LIKE ? OR kana LIKE ? OR romaji LIKE ? OR english_meanings LIKE ?
+       ORDER BY created_at DESC`,
+      [like, like, like, like]
+    );
+    return rows.map(rowToItem);
+  }
+
+  async getStats(): Promise<{ totalWords: number; totalFavorites: number; totalLists: number }> {
+    const [wordsRow, favRow, listsRow] = await Promise.all([
+      this.db.getFirstAsync<{ c: number }>(`SELECT COUNT(*) as c FROM items`),
+      this.db.getFirstAsync<{ c: number }>(`SELECT COUNT(*) as c FROM items WHERE favorite = 1`),
+      this.db.getFirstAsync<{ c: number }>(`SELECT COUNT(*) as c FROM lists`),
+    ]);
+    return {
+      totalWords: wordsRow?.c ?? 0,
+      totalFavorites: favRow?.c ?? 0,
+      totalLists: listsRow?.c ?? 0,
+    };
+  }
+
+  // -- Backup / restore ------------------------------------------------------
+
+  /** Full snapshot for "Export Backup" -- plain JSON, human-inspectable. */
+  async exportAll(): Promise<{ version: 1; lists: VocabularyList[]; items: VocabularyItem[] }> {
+    const [lists, items] = await Promise.all([this.getLists(), this.getItems()]);
+    return { version: 1, lists, items };
+  }
+
+  /**
+   * Imports a previously-exported snapshot. Lists are matched by name (a
+   * list with the same name is reused rather than duplicated); items are
+   * always inserted fresh with new ids, since keeping the original ids
+   * risks colliding with ones already on this device. Returns counts so
+   * the Settings screen can show a real result instead of a blind "done".
+   */
+  async importData(data: {
+    lists: VocabularyList[];
+    items: VocabularyItem[];
+  }): Promise<{ importedLists: number; importedItems: number }> {
+    const existingLists = await this.getLists();
+    const nameToId = new Map(existingLists.map((l) => [l.name, l.id]));
+    let importedLists = 0;
+
+    for (const list of data.lists) {
+      if (!nameToId.has(list.name)) {
+        const created = await this.createList(list.name);
+        nameToId.set(list.name, created.id);
+        importedLists++;
+      }
+    }
+
+    const oldIdToNewListId = new Map(data.lists.map((l) => [l.id, nameToId.get(l.name)!]));
+
+    let importedItems = 0;
+    for (const item of data.items) {
+      const listId = oldIdToNewListId.get(item.listId);
+      if (!listId) continue; // orphaned reference in the backup file -- skip rather than guess
+      await this.saveItem({
+        listId,
+        japanese: item.japanese,
+        kana: item.kana,
+        romaji: item.romaji,
+        englishMeanings: item.englishMeanings,
+        pos: item.pos,
+        tags: item.tags,
+        notes: item.notes,
+        favorite: item.favorite,
+      });
+      importedItems++;
+    }
+
+    return { importedLists, importedItems };
   }
 }
 

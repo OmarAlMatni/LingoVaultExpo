@@ -48,6 +48,7 @@
         }
       ],
       "./plugins/withProcessTextPopup",
+      "expo-asset",
       "expo-font"
     ],
     "experiments": {

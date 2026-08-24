@@ -40,11 +40,10 @@ export class TinySegmenter {
         "[0-9０-９]":"N"
     }
     this.chartype_ = [];
-    for (var i in patterns) {
-        var regexp = new RegExp;
-        regexp.compile(i)
-        this.chartype_.push([regexp, patterns[i]]);
-    }
+   for (const i in patterns) {
+    const regexp = new RegExp(i);
+    this.chartype_.push([regexp, patterns[i]]);
+}
 
     this.BIAS__ = -332
     this.BC1__ = {"HH":6,"II":2461,"KH":406,"OH":-1378};
@@ -115,7 +114,7 @@ export class TinySegmenter {
     var seg = ["B3","B2","B1"];
     var ctype = ["O","O","O"];
     var o = input.split("");
-    for (i = 0; i < o.length; ++i) {
+    for (let i = 0; i < o.length; ++i) {
         seg.push(o[i]);
         ctype.push(this.ctype_(o[i]))
     }

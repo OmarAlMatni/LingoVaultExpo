@@ -78,18 +78,40 @@ function withPopupTheme(config) {
 
       let xml = fs.readFileSync(stylesPath, 'utf8');
 
-      const themeBlock =
-        `    <style name="${THEME_NAME}" parent="Theme.AppCompat.DayNight.Dialog">\n` +
-        `        <item name="android:windowNoTitle">true</item>\n` +
-        `        <item name="android:windowIsFloating">true</item>\n` +
-        `        <item name="android:backgroundDimEnabled">true</item>\n` +
-        `        <item name="android:windowBackground">@android:color/transparent</item>\n` +
-        `    </style>\n`;
+   const themeBlock =
+  `    <style name="${THEME_NAME}" parent="Theme.AppCompat.DayNight.NoActionBar">\n` +
+  `        <item name="android:windowNoTitle">true</item>\n` +
+  `        <item name="android:windowIsFloating">true</item>\n` +
+  `        <item name="android:windowIsTranslucent">true</item>\n` +
+  `        <item name="android:windowBackground">@android:color/transparent</item>\n` +
+  `        <item name="android:windowContentOverlay">@null</item>\n` +
+  `        <item name="android:backgroundDimEnabled">true</item>\n` +
+  `        <item name="android:windowMinWidthMajor">0%</item>\n` +
+  `        <item name="android:windowMinWidthMinor">0%</item>\n` +
+  `        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>\n` +
+  `        <item name="android:windowActionModeOverlay">true</item>\n` +
+  `        <item name="android:colorAccent">@android:color/transparent</item>\n` +
+  `    </style>\n`;
 
-      if (!xml.includes(`name="${THEME_NAME}"`)) {
+    /*   if (!xml.includes(`name="${THEME_NAME}"`)) {
         xml = xml.replace('</resources>', `${themeBlock}</resources>`);
         fs.writeFileSync(stylesPath, xml, 'utf8');
       }
+
+      return config;
+    },
+  ]);
+} */
+
+   const existingBlockRe = new RegExp(
+        `\\s*<style name="${THEME_NAME.replace('.', '\\.')}"[\\s\\S]*?</style>\\n`
+      );
+      if (existingBlockRe.test(xml)) {
+        xml = xml.replace(existingBlockRe, `\n${themeBlock}`);
+      } else {
+        xml = xml.replace('</resources>', `${themeBlock}</resources>`);
+      }
+      fs.writeFileSync(stylesPath, xml, 'utf8');
 
       return config;
     },
@@ -120,7 +142,7 @@ function withTranslatePopupActivitySource(config) {
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.WindowManager
+
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
@@ -161,10 +183,7 @@ class TranslatePopupActivity : ReactActivity() {
     // Small floating card near the bottom-ish of the screen rather than a
     // full-screen window -- actual visual "popup" sizing. Theme.Popup
     // (windowIsFloating) makes the window floating; this sets its size.
-    window.setLayout(
-      (resources.displayMetrics.widthPixels * 0.92).toInt(),
-      WindowManager.LayoutParams.WRAP_CONTENT
-    )
+   
   }
 
   override fun getMainComponentName(): String = "main"

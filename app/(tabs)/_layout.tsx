@@ -1,14 +1,21 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/theme/ThemeContext';
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#2F8F7F',
-        tabBarInactiveTintColor: '#9A9AA8',
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.inkFaint,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.surfaceBorder,
+        },
       }}
     >
       <Tabs.Screen
@@ -28,19 +35,26 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="lists"
+        name="saved"
         options={{
-          title: 'Lists',
-          tabBarIcon: ({ color, size }) => <Ionicons name="bookmarks" color={color} size={size} />,
+          title: 'Saved',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="bookmark" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="search"
+        options={{
+          title: 'Search',
+          tabBarIcon: ({ color, size }) => <Ionicons name="search" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="settings" color={color} size={size} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" color={color} size={size} />,
         }}
       />
     </Tabs>

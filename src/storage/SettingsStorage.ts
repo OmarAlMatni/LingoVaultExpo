@@ -8,15 +8,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
  * simple KV store keeps this trivial.
  */
 
+export type ThemeMode = 'light' | 'dark' | 'system';
+
 export interface Settings {
   /** Minutes between widget vocabulary rotations (Phase 3 -- see README). */
   widgetRotationMinutes: 0.5 | 1 | 5 | 15 | 60;
   defaultListId: string | null;
+  themeMode: ThemeMode;
 }
 
 const DEFAULTS: Settings = {
   widgetRotationMinutes: 5,
   defaultListId: null,
+  themeMode: 'system',
 };
 
 const KEY = 'lingovault:settings';
